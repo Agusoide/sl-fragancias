@@ -1,0 +1,6 @@
+# Netlify Redirects - Single Page Application
+/*    /index.html   200
+
+# Optional: Custom redirects if needed
+/admin    /admin.html   200
+/login    /admin-login.html   200

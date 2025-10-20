@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SL - Fragancias</title>
+    <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+    <!-- O si prefieres PNG -->
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+
+</head>
+
+<body>
+    <!-- Header -->
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">
+                    <a href="#" class="logo">
+                        <span class="logo__text">SL</span>
+                        <img src="assets/logo.svg" class="logo__icon">
+                        <span class="logo__text logo__text--bold">Fragancias</span>
+                    </a>
+                </div>
+
+                <!-- Menú Desktop -->
+                <ul class="nav-links">
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#products">Perfumes</a></li>
+                    <li><a href="#contact">Contacto</a></li>
+                </ul>
+
+                <!-- Iconos -->
+                <div class="nav-icons">
+                    <div class="cart-icon">
+                        <i class="fas fa-shopping-bag"></i>
+                        <span class="cart-count">0</span>
+                    </div>
+                    <button class="hamburger">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Menú Móvil -->
+        <div class="nav-mobile">
+            <div class="mobile-logo">SL Fragancias</div>
+            <button class="mobile-close">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <nav>
+                <ul class="nav-mobile-links">
+                    <li><a href="#">Inicio</a></li>
+                    <li><a href="#products">Perfumes</a></li>
+                    <li><a href="#contact">Contacto</a></li>
+                </ul>
+            </nav>
+
+            <div class="mobile-contact">
+                <div class="mobile-contact-info">
+                    <div class="mobile-contact-item">
+                        <i class="fas fa-phone"></i>
+                        <span>+54 9 358 417-0048</span>
+                    </div>
+                    <div class="mobile-contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>sl.fraganciaok@gmail.com</span>
+                    </div>
+                    <div class="mobile-contact-item">
+                        <i class="fab fa-instagram"></i>
+                        <span>@slfragancias.ok</span>
+                    </div>
+                </div>
+
+                <div class="mobile-social">
+                    <a href="https://www.instagram.com/slfragancias.ok/">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="https://wa.me/5493584170048">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay para móvil -->
+        <div class="mobile-overlay"></div>
+    </header>
+
+    <!-- Hero Section con Carrusel -->
+    <section class="hero">
+        <div class="carousel">
+            <div class="carousel-inner">
+                <div class="carousel-slide">
+                    <img src="assets/banner_1.jpg" alt="Perfume de lujo">
+                    <div class="carousel-content">
+                      
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="assets/banner_2.jpg" alt="Fragancias exclusivas">
+                    <div class="carousel-content">
+                        
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="assets/banner_3.jpg" alt="Perfumes artesanales">
+                    <div class="carousel-content">
+                       
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="assets/banner_4.jpg" alt="Ofertas especiales">
+                    <div class="carousel-content">
+
+
+                    </div>
+                </div>
+            </div>
+            <div class="carousel-indicators">
+                <div class="carousel-indicator active" data-slide="0"></div>
+                <div class="carousel-indicator" data-slide="1"></div>
+                <div class="carousel-indicator" data-slide="2"></div>
+                <div class="carousel-indicator" data-slide="3"></div>
+            </div>
+            <div class="carousel-controls">
+                <div class="carousel-control prev">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+                <div class="carousel-control next">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products">
+        <div class="container">
+            <div class="section-title">
+                <h2>Nuestra Colección</h2>
+                <p>Explora nuestra exclusiva selección de fragancias creadas para todos los gustos y ocasiones</p>
+            </div>
+
+            <!-- Barra de búsqueda -->
+            <div class="search-container">
+                <div class="search-bar">
+                    <input type="text" class="search-input" id="search-input"
+                        placeholder="Buscar por nombre, descripción, marca...">
+                    <button class="search-btn" id="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">Todos</button>
+                <button class="filter-btn" data-filter="women">Mujeres</button>
+                <button class="filter-btn" data-filter="men">Hombres</button>
+                <button class="filter-btn" data-filter="unisex">Unisex</button>
+            </div>
+            <div class="products-grid" id="products-container">
+                <!-- Los productos se cargarán dinámicamente con JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+
+
+    <!-- Testimonials Section -->
+
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2>Encuentra Tu Fragancia Perfecta</h2>
+                <p>Descubre el perfume que mejor se adapte a tu personalidad y estilo de vida. Nuestros expertos están
+                    listos para ayudarte a encontrar tu esencia única.</p>
+                <a href="#products" class="btn">Explorar Colección Completa</a>
+            </div>
+        </div>
+    </section>
+
+
+
+
+
+    <!-- Footer -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <a href="#" class="logo">
+                        <h3 class="logo__nombre no-margin centrar-texto">SL <span class="logo__bold">Fragancias</span>
+                        </h3>
+                    </a>
+                    <p>Tienda de perfumes de lujo con las fragancias más exclusivas del mundo. Descubre tu esencia
+                        con nosotros.</p>
+                    <div class="social-links">
+
+                        <a href="https://www.instagram.com/slfragancias.ok/"><i class="fab fa-instagram"></i></a>
+                        <a href="https://wa.me/5493584170048"><i class="fab fa-whatsapp"></i></a>
+
+                    </div>
+                </div>
+                <div class="footer-column">
+                    <h3>Enlaces Rápidos</h3>
+                    <ul class="footer-links">
+                        <li><a href="#">Inicio</a></li>
+                        <li><a href="#products">Perfumes</a></li>
+
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Información de Contacto</h3>
+                    <ul class="footer-links">
+
+                        <li><a href="https://wa.me/5493584170048" class="fas fa-phone"> +54 9 358 417-0048</a></li>
+                      
+                        <li><a href="mailto:sl.atencionalcliente.ok@gmail.com">SL.atencionalCliente.ok@gmail.com&#9993;</a> </li> 
+
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+
+                <p class="copyright">Todos los derechos Reservados <span id="currentYear"></span> &copy;</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Product Modal -->
+    <!-- Modal de Producto -->
+    <div id="product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3 class="cart-title">Tu Carrito</h3>
+            <button class="close-cart">&times;</button>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <!-- Los elementos del carrito se cargarán dinámicamente -->
+        </div>
+
+        <!-- Sección de descuento -->
+        <div class="discount-section">
+            <h4 class="discount-title">Código de Descuento</h4>
+            <div class="discount-input">
+                <input type="text" class="discount-code" id="discount-code" placeholder="CÓDIGO (7 dígitos)"
+                    maxlength="7">
+                <button class="apply-discount" id="apply-discount">Aplicar</button>
+            </div>
+            <div class="discount-message" id="discount-message"></div>
+        </div>
+
+        <div class="cart-totals">
+            <div class="cart-subtotal">
+                <span>Subtotal:</span>
+                <span id="cart-subtotal">$ 0,00</span>
+            </div>
+            <div class="cart-discount">
+                <span>Descuento:</span>
+                <span id="cart-discount">- $ 0,00</span>
+            </div>
+            <div class="cart-total">
+                <span>Total:</span>
+                <span id="cart-total">$ 0,00</span>
+            </div>
+        </div>
+
+        <button class="btn btn-whatsapp" id="checkout-whatsapp">
+            <i class="fab fa-whatsapp"></i> Finalizar por WhatsApp
+        </button>
+    </div>
+
+    <!-- Overlay -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toast-message">Producto añadido al carrito</span>
+    </div>
+    <script>
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!--  <script>
+        // Configuración global SOLO para la tienda
+        console.log('🛍 Configurando Supabase para TIENDA...');
+        const SUPABASE_URL = 'https://qrfreqfvlcopgqtwgflk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
+        window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    </script> -->
+    <script src="js/supabase-client.js"></script>
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
