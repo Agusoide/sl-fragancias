@@ -2249,8 +2249,9 @@ body.mobile-menu-open header {
     pointer-events: none;
 }
 
-.popular-badge {
-  background: linear-gradient(135deg, #d4af37, #f4e4a0);
+/* Badge para el título de la sección (plural) */
+.section-badge {
+    background: linear-gradient(135deg, #d4af37, #f4e4a0);
     color: #1a1a1a;
     padding: 8px 20px;
     border-radius: 25px;
@@ -2259,10 +2260,26 @@ body.mobile-menu-open header {
     letter-spacing: 1px;
     text-transform: uppercase;
     display: inline-block;
-    margin-left: 140px;
-    animation: subtlePulse 3s ease-in-out infinite;
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    margin-left: 15px;
+}
+
+/* Badge para cada producto individual (singular) */
+.featured-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.95), rgba(244, 228, 160, 0.9));
+    color: #2c2c2c;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    backdrop-filter: blur(10px);
 }
 
 @keyframes gentleGlow {
@@ -2563,5 +2580,82 @@ body.mobile-menu-open header {
     
     .modal-price-section .price-display {
         font-size: 1.5rem;
+    }
+}
+
+/* ===== SISTEMA DE DESCRIPCIÓN PARCIAL CON GRADIENTE ===== */
+
+.product-description-container {
+    position: relative;
+    margin: 15px 0;
+    overflow: hidden;
+}
+
+.product-description {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 0;
+    
+    /* Limitar a 3 líneas */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-height: 4.8em; /* 3 líneas * 1.6 line-height */
+}
+
+/* Overlay gradiente para indicar que hay más contenido */
+.product-description-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(transparent, rgba(255,255,255,0.95));
+    pointer-events: none;
+}
+
+/* Estilos específicos para tarjetas de productos destacados */
+.featured-product-card .product-description-container {
+    margin: 12px 0;
+}
+
+.featured-product-card .product-description {
+    font-size: 0.9rem;
+}
+
+/* En el modal la descripción siempre se muestra completa */
+.modal-description {
+    display: block !important;
+    -webkit-line-clamp: unset !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Quitar el gradiente en el modal */
+.modal-info .product-description-container::after {
+    display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .product-description {
+        -webkit-line-clamp: 2;
+        max-height: 3.2em;
+        font-size: 0.9rem;
+    }
+    
+    .product-description-container::after {
+        height: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-description {
+        font-size: 0.85rem;
+        -webkit-line-clamp: 2;
+        max-height: 3.2em;
     }
 }
