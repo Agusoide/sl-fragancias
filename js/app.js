@@ -1,6 +1,6 @@
-console.log('🛍️ Inicializando tienda Aura Fragancias...');
+console.log('🛍️ Inicializando tienda Sl Fragancias...');
 
-let cart = JSON.parse(localStorage.getItem('auraCart')) || [];
+let cart = JSON.parse(localStorage.getItem('slCart')) || [];
 let discountApplied = false;
 let discountAmount = 0;
 let currentDiscountCode = '';
@@ -853,7 +853,7 @@ function addToCart(product, selectedML = null, selectedPrice = null) {
         });
     }
 
-    localStorage.setItem('auraCart', JSON.stringify(cart));
+    localStorage.setItem('slCart', JSON.stringify(cart));
     updateCartCount();
     showToast(`${product.name} ${selectedML ? `(${selectedML}ML) ` : ''}añadido al carrito`);
 }
@@ -1146,7 +1146,7 @@ function updateQuantity(itemId, change) {
     if (item.quantity <= 0) {
         removeFromCart(itemId);
     } else {
-        localStorage.setItem('auraCart', JSON.stringify(cart));
+        localStorage.setItem('slCart', JSON.stringify(cart));
         updateCartCount();
         renderCartItems();
         showToast(`Cantidad de ${item.name} actualizada`);
@@ -1155,7 +1155,7 @@ function updateQuantity(itemId, change) {
 
 function removeFromCart(itemId) {
     cart = cart.filter(item => item.id !== itemId);
-    localStorage.setItem('auraCart', JSON.stringify(cart));
+    localStorage.setItem('slCart', JSON.stringify(cart));
     updateCartCount();
     renderCartItems();
     showToast('Producto eliminado del carrito');
@@ -1238,7 +1238,7 @@ function checkoutWhatsApp() {
     window.open(whatsappURL, '_blank');
 
     cart = [];
-    localStorage.setItem('auraCart', JSON.stringify(cart));
+    localStorage.setItem('slCart', JSON.stringify(cart));
     updateCartCount();
     closeCartSidebar();
 
