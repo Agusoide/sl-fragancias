@@ -1215,3 +1215,117 @@ body {
         background-color: var(--primary-color);
     }
 }
+
+/* Estilos para el sistema de precios por ML */
+.price-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 1px;
+   
+    border-radius: 6px;
+    
+}
+
+.price-inputs {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+}
+
+.price-inputs input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.ml-amount {
+    position: relative;
+}
+
+.ml-amount::after {
+    content: "ML";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    font-size: 12px;
+}
+
+.remove-price {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.remove-price:hover {
+    background: #c82333;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 5px;
+    color: #6c757d;
+    font-size: 12px;
+}
+.price-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+.price-badge {
+    background: #e9ecef;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #495057;
+}
+
+/* Estilos para la vista de usuario */
+.ml-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 15px 0;
+}
+
+.ml-option {
+    padding: 8px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.ml-option:hover {
+    border-color: #c8a97e;
+}
+
+.ml-option.active {
+    border-color: #c8a97e;
+    background: #c8a97e;
+    color: white;
+}
+
+.price-display {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c5530;
+    margin: 10px 0;
+}
