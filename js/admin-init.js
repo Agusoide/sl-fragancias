@@ -89,6 +89,119 @@ function resetSearchOnLoad() {
     }
 }
 
+// ========== FUNCIONES PARA PRECIOS POR ML ==========
+
+// Función para agregar campo de precio
+function addPriceField(ml = '', price = '') {
+    const container = document.getElementById('prices-container');
+    const priceItem = document.createElement('div');
+    priceItem.className = 'price-item';
+    priceItem.innerHTML = `
+        <div class="price-inputs">
+            <input type="number" class="ml-amount" placeholder="ML (ej: 50)" 
+                   step="1" min="1" value="${ml}" ${ml === '' ? 'required' : ''}>
+            <input type="number" class="price-value" placeholder="Precio ($)" 
+                   step="0.01" min="0" value="${price}" ${price === '' ? 'required' : ''}>
+        </div>
+        <button type="button" class="remove-price">×</button>
+    `;
+    container.appendChild(priceItem);
+
+    // Mostrar botón de eliminar solo si hay más de un precio
+    updatePriceRemoveButtons();
+    
+    priceItem.querySelector('.remove-price').addEventListener('click', function() {
+        priceItem.remove();
+        updatePriceRemoveButtons();
+    });
+}
+
+// Función para actualizar visibilidad de botones eliminar
+function updatePriceRemoveButtons() {
+    const priceItems = document.querySelectorAll('.price-item');
+    const removeButtons = document.querySelectorAll('.remove-price');
+    
+    if (priceItems.length > 1) {
+        removeButtons.forEach(btn => btn.style.display = 'block');
+    } else {
+        removeButtons.forEach(btn => btn.style.display = 'none');
+    }
+}
+
+// Función para obtener los precios del formulario
+function getPricesFromForm() {
+    const priceItems = document.querySelectorAll('.price-item');
+    const prices = [];
+    
+    priceItems.forEach(item => {
+        const mlInput = item.querySelector('.ml-amount');
+        const priceInput = item.querySelector('.price-value');
+        const ml = parseFloat(mlInput.value);
+        const price = parseFloat(priceInput.value);
+        
+        if (ml && price && !isNaN(ml) && !isNaN(price)) {
+            prices.push({
+                ml_amount: ml,
+                price: price
+            });
+        }
+    });
+    
+    return prices;
+}
+
+// Función para cargar precios existentes al editar
+async function loadProductPrices(productId) {
+    try {
+        const { data: prices, error } = await window.supabaseClient.supabase
+            .from('product_prices')
+            .select('*')
+            .eq('product_id', productId)
+            .order('ml_amount', { ascending: true });
+            
+        if (error) throw error;
+        
+        return prices || [];
+    } catch (error) {
+        console.error('Error cargando precios:', error);
+        return [];
+    }
+}
+
+// Función para guardar precios
+async function saveProductPrices(productId, prices) {
+    try {
+        // Eliminar precios existentes
+        const { error: deleteError } = await window.supabaseClient.supabase
+            .from('product_prices')
+            .delete()
+            .eq('product_id', productId);
+            
+        if (deleteError) throw deleteError;
+        
+        // Insertar nuevos precios si hay alguno
+        if (prices.length > 0) {
+            const pricesWithProductId = prices.map(price => ({
+                ...price,
+                product_id: productId
+            }));
+            
+            const { error: insertError } = await window.supabaseClient.supabase
+                .from('product_prices')
+                .insert(pricesWithProductId);
+                
+            if (insertError) throw insertError;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error guardando precios:', error);
+        throw error;
+    }
+}
+
+// ========== FIN FUNCIONES PRECIOS POR ML ==========
+
 if (!shouldInitializeAdmin()) {
     console.log('⚠️ No es página de admin - omitiendo inicialización');
 } else {
@@ -407,6 +520,13 @@ function showProductModal() {
     document.getElementById('images-preview').innerHTML = '';
     document.getElementById('save-product').textContent = 'Guardar Producto';
 
+    // Limpiar y resetear precios
+    const pricesContainer = document.getElementById('prices-container');
+    if (pricesContainer) {
+        pricesContainer.innerHTML = '';
+        addPriceField(); // Agregar un campo inicial
+    }
+
     if (detailsContainer) {
         detailsContainer.innerHTML = '';
         addDetailField();
@@ -460,6 +580,13 @@ function setupProductForm() {
     if (productForm) {
         productForm.addEventListener('submit', handleProductSubmit);
         console.log('✅ Formulario de producto configurado');
+    }
+
+    // Configurar botón para agregar precios
+    const addPriceBtn = document.getElementById('add-price-btn');
+    if (addPriceBtn) {
+        addPriceBtn.addEventListener('click', () => addPriceField());
+        console.log('✅ Botón agregar precio configurado');
     }
 
     const uploadArea = document.getElementById('upload-area');
@@ -535,19 +662,27 @@ async function handleProductSubmit(e) {
         const productId = document.getElementById('product-id').value;
         const isEditing = !!productId;
 
+        // Obtener precios del formulario
+        const prices = getPricesFromForm();
+        if (prices.length === 0) {
+            showMessage('Debe agregar al menos un precio por ML', 'error');
+            return;
+        }
+
         const detailInputs = document.querySelectorAll('.detail-input');
         const fragranceDetails = Array.from(detailInputs)
             .map(input => input.value.trim())
             .filter(detail => detail.length > 0);
 
         console.log('📋 Detalles capturados:', fragranceDetails);
+        console.log('💰 Precios por ML capturados:', prices);
 
         const uploadedImages = await uploadProductImages();
 
         const productData = {
             name: document.getElementById('product-name').value,
             category: document.getElementById('product-category').value,
-            price: parseFloat(document.getElementById('product-price').value),
+            // NOTA: El campo price ya no se usa, se maneja en la tabla product_prices
             brand: document.getElementById('product-brand').value,
             description: document.getElementById('product-description').value,
             details: fragranceDetails,
@@ -555,6 +690,7 @@ async function handleProductSubmit(e) {
             images: uploadedImages.length > 0 ? uploadedImages : null
         };
 
+        // Remover campos vacíos o nulos
         Object.keys(productData).forEach(key => {
             if (productData[key] === null || productData[key] === undefined || 
                 (Array.isArray(productData[key]) && productData[key].length === 0)) {
@@ -586,7 +722,13 @@ async function handleProductSubmit(e) {
             throw error;
         }
 
-        console.log('✅ Producto guardado en Supabase:', data);
+        const savedProduct = data[0];
+        console.log('✅ Producto guardado en Supabase:', savedProduct);
+
+        // Guardar los precios por ML
+        await saveProductPrices(savedProduct.id, prices);
+
+        console.log('✅ Precios por ML guardados');
         showMessage(`Producto ${isEditing ? 'actualizado' : 'creado'} correctamente`, 'success');
         hideAllModals();
         await reloadAdminProducts();
@@ -622,6 +764,7 @@ async function reloadAdminProducts() {
         console.error('❌ Error recargando productos:', error);
     }
 }
+
 function formatPrice(price) {
     // Convertir a número y formatear con separadores de miles y decimales
     const number = parseFloat(price);
@@ -630,6 +773,21 @@ function formatPrice(price) {
         maximumFractionDigits: 2
     });
 }
+
+// Función auxiliar para mostrar el rango de precios
+function getPriceRange(prices) {
+    if (!prices || prices.length === 0) return 'Sin precios';
+    
+    const minPrice = Math.min(...prices.map(p => p.price));
+    const maxPrice = Math.max(...prices.map(p => p.price));
+    
+    if (minPrice === maxPrice) {
+        return formatPrice(minPrice);
+    } else {
+        return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`;
+    }
+}
+
 function displayAdminProducts(products) {
     const container = document.getElementById('admin-products-container');
     if (!container) {
@@ -639,27 +797,34 @@ function displayAdminProducts(products) {
 
     console.log('🖼️ Mostrando productos:', products.length);
 
-    container.innerHTML = products.map(product => `
-        <div class="admin-product-card">
-            <div class="product-image">
-                <img src="${getSafeImageUrl(product)}" alt="${product.name}">
+    // Para cada producto, cargar sus precios y luego mostrar
+    Promise.all(products.map(async (product) => {
+        const prices = await loadProductPrices(product.id);
+        return { ...product, prices };
+    })).then(productsWithPrices => {
+        container.innerHTML = productsWithPrices.map(product => `
+            <div class="admin-product-card">
+                <div class="product-image">
+                    <img src="${getSafeImageUrl(product)}" alt="${product.name}">
+                </div>
+                <div class="product-info">
+                    <h3>${product.name}</h3>
+                    <p class="product-brand">${product.brand || 'Sin marca'}</p>
+                    <p class="product-price">${getPriceRange(product.prices)}</p>
+                    <p class="product-category">${product.category || 'Sin categoría'}</p>
+                    <p class="product-ml-variants">${product.prices?.length || 0} ${product.prices?.length === 1 ? 'variante' : 'variantes'} de ML</p>
+                </div>
+                <div class="product-actions">
+                    <button class="btn btn-edit" onclick="editProduct('${product.id}')">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
             </div>
-            <div class="product-info">
-                <h3>${product.name}</h3>
-                <p class="product-brand">${product.brand || 'Sin marca'}</p>
-                <p class="product-price">${formatPrice(product.price || 0)}</p>
-                <p class="product-category">${product.category || 'Sin categoría'}</p>
-            </div>
-            <div class="product-actions">
-                <button class="btn btn-edit" onclick="editProduct('${product.id}')">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                <button class="btn btn-delete" onclick="deleteProduct('${product.id}')">
-                    <i class="fas fa-trash"></i> Eliminar
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    });
 }
 
 async function deleteProduct(productId) {
@@ -671,6 +836,15 @@ async function deleteProduct(productId) {
             try {
                 showMessage('Eliminando producto...', 'info');
 
+                // Eliminar primero los precios asociados
+                const { error: pricesError } = await window.supabaseClient.supabase
+                    .from('product_prices')
+                    .delete()
+                    .eq('product_id', productId);
+
+                if (pricesError) throw pricesError;
+
+                // Luego eliminar el producto
                 const { error } = await window.supabaseClient.supabase
                     .from('products')
                     .delete()
@@ -713,13 +887,30 @@ async function editProduct(productId) {
 
         console.log('📦 Producto a editar:', product);
 
+        // Cargar datos básicos del producto
         document.getElementById('product-id').value = product.id;
         document.getElementById('product-name').value = product.name || '';
         document.getElementById('product-category').value = product.category || 'women';
-        document.getElementById('product-price').value = product.price || '';
         document.getElementById('product-brand').value = product.brand || '';
         document.getElementById('product-description').value = product.description || '';
 
+        // Limpiar y cargar precios existentes
+        const pricesContainer = document.getElementById('prices-container');
+        if (pricesContainer) {
+            pricesContainer.innerHTML = '';
+            
+            const prices = await loadProductPrices(productId);
+            if (prices.length > 0) {
+                prices.forEach(price => {
+                    addPriceField(price.ml_amount, price.price);
+                });
+            } else {
+                // Agregar un campo vacío si no hay precios
+                addPriceField();
+            }
+        }
+
+        // Cargar detalles existentes
         const detailsContainer = document.getElementById('details-container');
         if (detailsContainer) {
             detailsContainer.innerHTML = '';
@@ -738,7 +929,29 @@ async function editProduct(productId) {
             }
         }
 
+        // MOSTRAR IMÁGENES EXISTENTES AL EDITAR
+        const imagesPreview = document.getElementById('images-preview');
+        if (imagesPreview && product.images && Array.isArray(product.images)) {
+            imagesPreview.innerHTML = '';
+            product.images.forEach((imageUrl, index) => {
+                const imgContainer = document.createElement('div');
+                imgContainer.className = 'image-preview-item';
+                imgContainer.innerHTML = `
+                    <div class="order-indicator">${index + 1}</div>
+                    <div class="preview-header">
+                        <span class="image-name">Imagen ${index + 1}</span>
+                        <button type="button" class="remove-image">×</button>
+                    </div>
+                    <img src="${imageUrl}" alt="Imagen del producto">
+                    <div class="image-info">Imagen existente</div>
+                `;
+                imagesPreview.appendChild(imgContainer);
+            });
+            updateUploadAreaFeedback();
+        }
+
         document.getElementById('product-modal-title').textContent = 'Editar Producto';
+        document.getElementById('save-product').textContent = 'Actualizar Producto';
 
         const modal = document.getElementById('product-modal');
         const overlay = document.getElementById('overlay');
@@ -746,8 +959,6 @@ async function editProduct(productId) {
         modal.style.display = 'block';
         if (overlay) overlay.style.display = 'block';
         document.body.style.overflow = 'hidden';
-
-        document.getElementById('save-product').textContent = 'Actualizar Producto';
 
         showMessage(`Editando: ${product.name}`, 'info');
 
