@@ -7,6 +7,7 @@ let currentDiscountCode = '';
 let currentPage = 1;
 let productsPerPage = 12;
 let allProducts = [];
+let currentSort = 'popular'; // Nueva variable para ordenamiento
 
 function displayFragranceDetails(product) {
     if (!product.details || typeof product.details !== 'string') {
@@ -55,6 +56,7 @@ async function initializeApp() {
         initializeHamburgerMenu();
         updateCartCount();
         setupEventListeners();
+        setupSorting(); // Nueva función para ordenamiento
 
         console.log('✅ Tienda inicializada correctamente');
 
@@ -152,12 +154,134 @@ async function loadProducts(filter = 'all', searchTerm = '') {
         showToast('Error al cargar los productos', true);
     }
 }
+
 function formatPrice(price) {
-    // Convertir a número y formatear con separadores de miles y decimales
     const number = parseFloat(price);
     return '$' + number.toLocaleString('es-AR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
+    });
+}
+
+// Nueva función para incrementar contador de clicks
+async function incrementClickCount(productId) {
+    try {
+        if (window.supabaseClient && window.supabaseClient.supabase) {
+            const { data: product } = await window.supabaseClient.supabase
+                .from('products')
+                .select('click_count')
+                .eq('id', productId)
+                .single();
+            
+            if (product) {
+                const newCount = (product.click_count || 0) + 1;
+                await window.supabaseClient.supabase
+                    .from('products')
+                    .update({ click_count: newCount })
+                    .eq('id', productId);
+                
+                console.log(`✅ Click contado para producto ${productId}: ${newCount}`);
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error incrementando click count:', error);
+    }
+}
+
+// Nueva función para ordenar productos
+function sortProducts(products, sortType) {
+    const sortedProducts = [...products];
+    
+    switch(sortType) {
+        case 'name_asc':
+            return sortedProducts.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name_desc':
+            return sortedProducts.sort((a, b) => b.name.localeCompare(a.name));
+        case 'popular':
+        default:
+            return sortedProducts.sort((a, b) => {
+                const clicksA = a.click_count || 0;
+                const clicksB = b.click_count || 0;
+                return clicksB - clicksA;
+            });
+    }
+}
+
+function displayFeaturedProducts(products) {
+    const featuredContainer = document.createElement('div');
+    featuredContainer.className = 'featured-products';
+    
+    // Tomar solo los productos que tienen clicks (populares)
+    const popularProducts = products
+        .filter(product => (product.click_count || 0) > 0)
+        .sort((a, b) => (b.click_count || 0) - (a.click_count || 0))
+        .slice(0, 6); // Máximo 6 productos destacados
+    
+    if (popularProducts.length === 0) {
+        return; // No mostrar sección si no hay productos populares
+    }
+    
+    featuredContainer.innerHTML = `
+        <div class="featured-title">
+            <h3>Fragancias Más Populares <span class="featured-badge">🔥 Destacadas</span></h3>
+            <p>Descubre las esencias favoritas de nuestra comunidad</p>
+        </div>
+        <div class="featured-grid" id="featured-products-container">
+        </div>
+    `;
+    
+    const productsSection = document.getElementById('products-container');
+    productsSection.parentNode.insertBefore(featuredContainer, productsSection);
+    
+    const featuredGrid = document.getElementById('featured-products-container');
+    
+    popularProducts.forEach(product => {
+        const productImages = getProductImages(product);
+        const mainImage = productImages.length > 0 ? productImages[0] : createImagePlaceholder(product.name);
+        
+        const productCard = document.createElement('div');
+        productCard.className = 'product-card featured-product-card';
+        productCard.innerHTML = `
+            <div class="popular-badge">🔥 ${product.click_count || 0} vistas</div>
+            <div class="product-image">
+                <img src="${mainImage}" alt="${product.name}" loading="lazy" 
+                     onerror="this.src='${createImagePlaceholder(product.name)}'"
+                     class="product-main-image"
+                     data-id="${product.id}">
+                ${productImages.length > 1 ? `
+                <div class="image-count-badge">
+                    <i class="fas fa-images"></i> ${productImages.length}
+                </div>
+                ` : ''}
+            </div>
+            <div class="product-info">
+                <p class="product-category">${getCategoryName(product.category)}</p>
+                <h3 class="product-name">${product.name}</h3>
+                <div class="price-info">
+                    <span class="price-label">Precio Abonando con Transferencia/Efectivo</span>
+                    <p class="product-price">${formatPrice(product.price)}</p>
+                </div>
+                <p class="product-description">${product.description}</p>
+                ${displayFragranceDetails(product)}
+                <button class="btn view-details" data-id="${product.id}">Ver Detalles</button>
+            </div>
+        `;
+        featuredGrid.appendChild(productCard);
+    });
+    
+    // Event listeners para productos destacados
+    featuredGrid.querySelectorAll('.product-main-image').forEach(img => {
+        img.addEventListener('click', (e) => {
+            const productId = parseInt(e.target.getAttribute('data-id'));
+            openProductModal(productId);
+        });
+    });
+    
+    featuredGrid.querySelectorAll('.view-details').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const productId = parseInt(e.target.getAttribute('data-id'));
+            openProductModal(productId);
+        });
     });
 }
 function displayProducts(products, filter = 'all', searchTerm = '') {
@@ -166,6 +290,12 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
         return;
     }
 
+    // Limpiar productos destacados existentes
+    const existingFeatured = document.querySelector('.featured-products');
+    if (existingFeatured) {
+        existingFeatured.remove();
+    }
+    
     window.productsContainer.innerHTML = '';
 
     if (products.length === 0) {
@@ -174,15 +304,35 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
         return;
     }
 
-    const startIndex = (currentPage - 1) * productsPerPage;
-    const endIndex = startIndex + productsPerPage;
-    const paginatedProducts = products.slice(startIndex, endIndex);
+    // SOLO mostrar productos destacados cuando el usuario selecciona "Más Populares"
+    // y no hay búsqueda activa
+    if (searchTerm === '' && currentSort === 'popular') {
+        displayFeaturedProducts(products);
+        
+        // Para el grid principal, mostrar todos los productos pero con los populares primero
+        const sortedProducts = sortProducts(products, currentSort);
+        const startIndex = (currentPage - 1) * productsPerPage;
+        const endIndex = startIndex + productsPerPage;
+        const paginatedProducts = sortedProducts.slice(startIndex, endIndex);
+        
+        displayProductGrid(paginatedProducts);
+    } else {
+        // Ordenar productos según la selección
+        const sortedProducts = sortProducts(products, currentSort);
+        const startIndex = (currentPage - 1) * productsPerPage;
+        const endIndex = startIndex + productsPerPage;
+        const paginatedProducts = sortedProducts.slice(startIndex, endIndex);
+        
+        displayProductGrid(paginatedProducts);
+    }
 
-    paginatedProducts.forEach(product => {
+    displayPagination(products.length);
+}
+
+function displayProductGrid(products) {
+    products.forEach(product => {
         const productImages = getProductImages(product);
         const mainImage = productImages.length > 0 ? productImages[0] : createImagePlaceholder(product.name);
-
-        console.log('🔍 Producto:', product.name, 'Imágenes:', productImages.length);
 
         const productCard = document.createElement('div');
         productCard.className = 'product-card';
@@ -216,6 +366,7 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
         window.productsContainer.appendChild(productCard);
     });
 
+    // Event listeners...
     document.querySelectorAll('.product-main-image').forEach(img => {
         img.addEventListener('click', (e) => {
             const productId = parseInt(e.target.getAttribute('data-id'));
@@ -230,8 +381,6 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
             openProductModal(productId);
         });
     });
-
-    displayPagination(products.length);
 }
 
 function getProductImages(product) {
@@ -471,6 +620,17 @@ function initializeCarousel() {
 function stopCarousel() {
     if (carouselInterval) {
         clearInterval(carouselInterval);
+    }
+}
+
+// Nueva función para configurar el ordenamiento
+function setupSorting() {
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            displayProducts(allProducts);
+        });
     }
 }
 
@@ -1160,6 +1320,9 @@ function getLocalProductById(productId) {
 
 async function openProductModal(productId) {
     try {
+        // Incrementar contador de clicks cuando se abre el modal
+        await incrementClickCount(productId);
+        
         let product;
 
         if (window.supabaseClient && typeof window.supabaseClient.getProductById === 'function') {
