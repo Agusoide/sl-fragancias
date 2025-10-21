@@ -1,3 +1,4 @@
+
 console.log('🔄 Cargando supabase-client.js...');
 
 const SUPABASE_URL = 'https://qrfreqfvlcopgqtwgflk.supabase.co';
@@ -20,7 +21,7 @@ try {
 
 function loadSupabaseFromCDN() {
     console.log('📥 Cargando Supabase desde CDN...');
-    
+
     const script = document.createElement('script');
     script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
     script.onload = () => {
@@ -37,7 +38,7 @@ function loadSupabaseFromCDN() {
 
 async function getProducts(filter = 'all', searchTerm = '') {
     console.log('📦 Obteniendo productos... Filtro:', filter, 'Búsqueda:', searchTerm);
-    
+
     try {
         if (!supabaseClient) {
             console.warn('⚠️ Supabase no inicializado - usando datos locales');
@@ -58,15 +59,21 @@ async function getProducts(filter = 'all', searchTerm = '') {
         }
 
         const { data, error } = await query;
-        
+
         if (error) {
             console.error('❌ Error en getProducts:', error);
             return getLocalProducts(filter, searchTerm);
         }
-        
-        console.log(`✅ ${data?.length || 0} productos cargados desde Supabase`);
-        return data || [];
-        
+
+        // Asegurarse de que todos los productos tengan click_count
+        const productsWithClickCount = data.map(product => ({
+            ...product,
+            click_count: product.click_count || 0
+        }));
+
+        console.log(`✅ ${productsWithClickCount?.length || 0} productos cargados desde Supabase`);
+        return productsWithClickCount || [];
+
     } catch (error) {
         console.error('❌ Error en getProducts:', error);
         return getLocalProducts(filter, searchTerm);
@@ -75,7 +82,7 @@ async function getProducts(filter = 'all', searchTerm = '') {
 
 function getLocalProducts(filter = 'all', searchTerm = '') {
     console.log('🔄 Usando datos locales de respaldo...');
-    
+
     const localProducts = [
         {
             id: 1,
@@ -124,19 +131,19 @@ function getLocalProducts(filter = 'all', searchTerm = '') {
             created_at: new Date().toISOString()
         }
     ];
-    
+
     let filtered = filter === 'all' ? localProducts : localProducts.filter(p => p.category === filter);
-    
+
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filtered = filtered.filter(p => 
+        filtered = filtered.filter(p =>
             p.name.toLowerCase().includes(term) ||
             p.description.toLowerCase().includes(term) ||
             p.section.toLowerCase().includes(term) ||
             p.brand.toLowerCase().includes(term)
         );
     }
-    
+
     console.log(`📦 ${filtered.length} productos cargados desde datos locales`);
     return filtered;
 }
@@ -154,10 +161,10 @@ async function getProductById(id) {
             .select('*')
             .eq('id', id)
             .single();
-        
+
         if (error) throw error;
         return data;
-        
+
     } catch (error) {
         console.error('❌ Error en getProductById:', error);
         const localProducts = getLocalProducts('all', '');
@@ -175,10 +182,10 @@ async function createProduct(productData) {
             .from('products')
             .insert([productData])
             .select();
-        
+
         if (error) throw error;
         return data[0];
-        
+
     } catch (error) {
         console.error('❌ Error en createProduct:', error);
         throw error;
@@ -196,10 +203,10 @@ async function updateProduct(id, productData) {
             .update(productData)
             .eq('id', id)
             .select();
-        
+
         if (error) throw error;
         return data[0];
-        
+
     } catch (error) {
         console.error('❌ Error en updateProduct:', error);
         throw error;
@@ -216,14 +223,41 @@ async function deleteProduct(id) {
             .from('products')
             .delete()
             .eq('id', id);
-        
+
         if (error) throw error;
         return true;
-        
+
     } catch (error) {
         console.error('❌ Error en deleteProduct:', error);
         throw error;
     }
+}
+
+// ✅ AGREGAR ESTA FUNCIÓN FALTANTE
+function validateLocalDiscountCode(code) {
+    console.log('🔍 Validando código localmente:', code);
+
+    const localDiscountCodes = {
+        // Ejemplos (puedes agregar los que necesites)
+        // 'CODIGO10': 10,
+        // 'CODIGO20': 20,
+    };
+
+    const cleanCode = code.toUpperCase().trim();
+
+    if (localDiscountCodes[cleanCode]) {
+        return {
+            valid: true,
+            message: `¡Descuento del ${localDiscountCodes[cleanCode]}% aplicado! (Local)`,
+            discount_percent: localDiscountCodes[cleanCode],
+            code: cleanCode
+        };
+    }
+
+    return {
+        valid: false,
+        message: 'Código de descuento no válido'
+    };
 }
 
 async function validateDiscountCode(code) {
@@ -239,24 +273,23 @@ async function validateDiscountCode(code) {
             .eq('code', code.toUpperCase())
             .eq('is_active', true)
             .single();
-        
+
         if (error || !data) {
             return { valid: false };
         }
-        
+
         return {
-              valid: true,
+            valid: true,
             message: `¡Descuento del ${data.discount_percent}% aplicado!`,
             discount_percent: data.discount_percent,
             code: data.code
         };
-        
+
     } catch (error) {
         console.error('❌ Error en validateDiscountCode:', error);
         return validateLocalDiscountCode(code);
     }
 }
-
 
 function initializeSupabaseClient() {
     window.supabaseClient = {
