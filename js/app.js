@@ -7,7 +7,7 @@ let currentDiscountCode = '';
 let currentPage = 1;
 let productsPerPage = 12;
 let allProducts = [];
-let currentSort = 'popular'; // Nueva variable para ordenamiento
+let currentSort = 'popular';
 
 function displayFragranceDetails(product) {
     if (!product.details || typeof product.details !== 'string') {
@@ -56,14 +56,36 @@ async function initializeApp() {
         initializeHamburgerMenu();
         updateCartCount();
         setupEventListeners();
-        setupSorting(); // Nueva función para ordenamiento
-
+        setupSorting();
+        setupProductModal();
         console.log('✅ Tienda inicializada correctamente');
-
     } catch (error) {
         console.error('❌ Error inicializando tienda:', error);
         showToast('Error al cargar la tienda', true);
     }
+}
+
+function setupProductModal() {
+    const modal = document.getElementById('product-modal');
+    
+    if (!modal) {
+        console.log('ℹ️ Modal de producto no encontrado en esta página');
+        return;
+    }
+
+    const closeModal = document.querySelector('.close-modal');
+    
+    if (closeModal) {
+        closeModal.addEventListener('click', closeProductModal);
+    }
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeProductModal();
+        }
+    });
+    
+    console.log('✅ Modal de producto configurado correctamente');
 }
 
 function initializeDOMElements() {
@@ -136,11 +158,11 @@ function initializeHamburgerMenu() {
 
 async function loadProducts(filter = 'all', searchTerm = '') {
     try {
-        console.log('📦 Cargando productos...');
+        console.log('📦 Cargando productos con precios...');
 
         let products;
-        if (window.supabaseClient && typeof window.supabaseClient.getProducts === 'function') {
-            products = await window.supabaseClient.getProducts(filter, searchTerm);
+        if (window.supabaseClient && typeof window.supabaseClient.getProductsWithPrices === 'function') {
+            products = await window.supabaseClient.getProductsWithPrices(filter, searchTerm);
         } else {
             console.warn('⚠️ Supabase no configurado - usando datos locales');
             products = getLocalProducts(filter, searchTerm);
@@ -155,6 +177,40 @@ async function loadProducts(filter = 'all', searchTerm = '') {
     }
 }
 
+function renderMLSelector(prices, productId) {
+    if (!prices || prices.length === 0) {
+        return '<div class="no-prices">Precio no disponible</div>';
+    }
+    
+    if (prices.length === 1) {
+        return `
+            <div class="single-price">
+                <div class="price-display">${formatPrice(prices[0].price)}</div>
+                <div class="ml-size">${prices[0].ml_amount} ML</div>
+            </div>
+        `;
+    } else {
+        const sortedPrices = prices.sort((a, b) => a.ml_amount - b.ml_amount);
+        const firstPrice = sortedPrices[0];
+        
+        return `
+            <div class="ml-selector" data-product="${productId}">
+                ${sortedPrices.map((price, index) => `
+                    <div class="ml-option ${index === 0 ? 'active' : ''}" 
+                         data-ml="${price.ml_amount}" 
+                         data-price="${price.price}"
+                         data-product="${productId}">
+                        ${price.ml_amount} ML
+                    </div>
+                `).join('')}
+            </div>
+            <div class="price-display" id="price-${productId}">
+                ${formatPrice(firstPrice.price)}
+            </div>
+        `;
+    }
+}
+
 function formatPrice(price) {
     const number = parseFloat(price);
     return '$' + number.toLocaleString('es-AR', {
@@ -163,7 +219,6 @@ function formatPrice(price) {
     });
 }
 
-// Nueva función para incrementar contador de clicks
 async function incrementClickCount(productId) {
     try {
         if (window.supabaseClient && window.supabaseClient.supabase) {
@@ -188,7 +243,6 @@ async function incrementClickCount(productId) {
     }
 }
 
-// Nueva función para ordenar productos
 function sortProducts(products, sortType) {
     const sortedProducts = [...products];
     
@@ -211,14 +265,13 @@ function displayFeaturedProducts(products) {
     const featuredContainer = document.createElement('div');
     featuredContainer.className = 'featured-products';
     
-    // Tomar solo los productos que tienen clicks (populares)
     const popularProducts = products
         .filter(product => (product.click_count || 0) > 0)
         .sort((a, b) => (b.click_count || 0) - (a.click_count || 0))
-        .slice(0, 6); // Máximo 6 productos destacados
+        .slice(0, 6);
     
     if (popularProducts.length === 0) {
-        return; // No mostrar sección si no hay productos populares
+        return;
     }
     
     featuredContainer.innerHTML = `
@@ -231,7 +284,9 @@ function displayFeaturedProducts(products) {
     `;
     
     const productsSection = document.getElementById('products-container');
-    productsSection.parentNode.insertBefore(featuredContainer, productsSection);
+    if (productsSection && productsSection.parentNode) {
+        productsSection.parentNode.insertBefore(featuredContainer, productsSection);
+    }
     
     const featuredGrid = document.getElementById('featured-products-container');
     
@@ -242,7 +297,7 @@ function displayFeaturedProducts(products) {
         const productCard = document.createElement('div');
         productCard.className = 'product-card featured-product-card';
         productCard.innerHTML = `
-            <div class="popular-badge">🔥 ${product.click_count || 0} vistas</div>
+            <div class="popular-badge">🔥 Destacada</div>
             <div class="product-image">
                 <img src="${mainImage}" alt="${product.name}" loading="lazy" 
                      onerror="this.src='${createImagePlaceholder(product.name)}'"
@@ -259,38 +314,43 @@ function displayFeaturedProducts(products) {
                 <h3 class="product-name">${product.name}</h3>
                 <div class="price-info">
                     <span class="price-label">Precio Abonando con Transferencia/Efectivo</span>
-                    <p class="product-price">${formatPrice(product.price)}</p>
+                    ${renderMLSelector(product.product_prices, product.id)}
                 </div>
                 <p class="product-description">${product.description}</p>
                 ${displayFragranceDetails(product)}
                 <button class="btn view-details" data-id="${product.id}">Ver Detalles</button>
             </div>
         `;
-        featuredGrid.appendChild(productCard);
+        if (featuredGrid) {
+            featuredGrid.appendChild(productCard);
+        }
     });
     
-    // Event listeners para productos destacados
-    featuredGrid.querySelectorAll('.product-main-image').forEach(img => {
-        img.addEventListener('click', (e) => {
-            const productId = parseInt(e.target.getAttribute('data-id'));
-            openProductModal(productId);
-        });
-    });
+    initializeMLSelectors();
     
-    featuredGrid.querySelectorAll('.view-details').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const productId = parseInt(e.target.getAttribute('data-id'));
-            openProductModal(productId);
+    if (featuredGrid) {
+        featuredGrid.querySelectorAll('.product-main-image').forEach(img => {
+            img.addEventListener('click', (e) => {
+                const productId = parseInt(e.target.getAttribute('data-id'));
+                openProductModal(productId);
+            });
         });
-    });
+        
+        featuredGrid.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const productId = parseInt(e.target.getAttribute('data-id'));
+                openProductModal(productId);
+            });
+        });
+    }
 }
+
 function displayProducts(products, filter = 'all', searchTerm = '') {
     if (!window.productsContainer) {
         console.error('❌ products-container no encontrado');
         return;
     }
 
-    // Limpiar productos destacados existentes
     const existingFeatured = document.querySelector('.featured-products');
     if (existingFeatured) {
         existingFeatured.remove();
@@ -304,12 +364,9 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
         return;
     }
 
-    // SOLO mostrar productos destacados cuando el usuario selecciona "Más Populares"
-    // y no hay búsqueda activa
     if (searchTerm === '' && currentSort === 'popular') {
         displayFeaturedProducts(products);
         
-        // Para el grid principal, mostrar todos los productos pero con los populares primero
         const sortedProducts = sortProducts(products, currentSort);
         const startIndex = (currentPage - 1) * productsPerPage;
         const endIndex = startIndex + productsPerPage;
@@ -317,7 +374,6 @@ function displayProducts(products, filter = 'all', searchTerm = '') {
         
         displayProductGrid(paginatedProducts);
     } else {
-        // Ordenar productos según la selección
         const sortedProducts = sortProducts(products, currentSort);
         const startIndex = (currentPage - 1) * productsPerPage;
         const endIndex = startIndex + productsPerPage;
@@ -354,7 +410,7 @@ function displayProductGrid(products) {
                 <h3 class="product-name">${product.name}</h3>
                 <div class="price-info">
                     <span class="price-label">Precio Abonando con Transferencia/Efectivo</span>
-                   <p class="product-price">${formatPrice(product.price)}</p>
+                    ${renderMLSelector(product.product_prices, product.id)}
                 </div>
                 <p class="product-description">${product.description}</p>
                 
@@ -366,7 +422,8 @@ function displayProductGrid(products) {
         window.productsContainer.appendChild(productCard);
     });
 
-    // Event listeners...
+    initializeMLSelectors();
+
     document.querySelectorAll('.product-main-image').forEach(img => {
         img.addEventListener('click', (e) => {
             const productId = parseInt(e.target.getAttribute('data-id'));
@@ -380,6 +437,30 @@ function displayProductGrid(products) {
             const productId = parseInt(e.target.getAttribute('data-id'));
             openProductModal(productId);
         });
+    });
+}
+
+function initializeMLSelectors() {
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('ml-option')) {
+            const option = e.target;
+            const productId = option.getAttribute('data-product');
+            const container = option.closest('.product-card');
+            if (!container) return;
+            
+            const priceDisplay = container.querySelector('.price-display');
+            const price = option.getAttribute('data-price');
+            
+            container.querySelectorAll('.ml-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            
+            option.classList.add('active');
+            
+            if (priceDisplay) {
+                priceDisplay.textContent = formatPrice(price);
+            }
+        }
     });
 }
 
@@ -449,7 +530,9 @@ function displayPagination(totalProducts) {
         if (currentPage > 1) {
             currentPage--;
             displayProducts(allProducts);
-            window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            if (window.productsContainer) {
+                window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            }
         }
     });
 
@@ -476,7 +559,9 @@ function displayPagination(totalProducts) {
         pageButton.addEventListener('click', () => {
             currentPage = i;
             displayProducts(allProducts);
-            window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            if (window.productsContainer) {
+                window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            }
         });
         pageNumbers.appendChild(pageButton);
     }
@@ -497,7 +582,9 @@ function displayPagination(totalProducts) {
         if (currentPage < totalPages) {
             currentPage++;
             displayProducts(allProducts);
-            window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            if (window.productsContainer) {
+                window.scrollTo({ top: window.productsContainer.offsetTop - 100, behavior: 'smooth' });
+            }
         }
     });
 
@@ -514,7 +601,9 @@ function displayPagination(totalProducts) {
     paginationContainer.appendChild(pageInfo);
     paginationContainer.appendChild(nextButton);
 
-    window.productsContainer.parentNode.appendChild(paginationContainer);
+    if (window.productsContainer && window.productsContainer.parentNode) {
+        window.productsContainer.parentNode.appendChild(paginationContainer);
+    }
 }
 
 function removePagination() {
@@ -623,7 +712,6 @@ function stopCarousel() {
     }
 }
 
-// Nueva función para configurar el ordenamiento
 function setupSorting() {
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
@@ -744,16 +832,22 @@ function showToast(message, isError = false) {
     }, 3000);
 }
 
-function addToCart(product) {
-    const existingItem = cart.find(item => item.id === product.id);
+// FUNCIÓN MODIFICADA: Ahora incluye ml_amount en el carrito
+function addToCart(product, selectedML = null, selectedPrice = null) {
+    // Crear un ID único que incluya el producto y el tamaño ML
+    const itemId = selectedML ? `${product.id}-${selectedML}` : product.id.toString();
+    
+    const existingItem = cart.find(item => item.id === itemId);
 
     if (existingItem) {
         existingItem.quantity += 1;
     } else {
         cart.push({
-            id: product.id,
+            id: itemId, // ID único que incluye ML
+            productId: product.id, // ID original del producto para referencia
             name: product.name,
-            price: product.price,
+            price: selectedPrice || product.price,
+            ml_amount: selectedML || 'N/A', // Guardar el tamaño ML
             image: product.image,
             quantity: 1
         });
@@ -761,7 +855,7 @@ function addToCart(product) {
 
     localStorage.setItem('auraCart', JSON.stringify(cart));
     updateCartCount();
-    showToast(`${product.name} añadido al carrito`);
+    showToast(`${product.name} ${selectedML ? `(${selectedML}ML) ` : ''}añadido al carrito`);
 }
 
 async function applyDiscount() {
@@ -833,9 +927,7 @@ async function applyDiscount() {
     } catch (error) {
         console.error('❌ Error aplicando descuento:', error);
 
-        const localDiscountCodes = {
-
-        };
+        const localDiscountCodes = {};
 
         const cleanCode = code.toUpperCase();
 
@@ -886,6 +978,7 @@ async function applyDiscount() {
     }
 }
 
+// FUNCIÓN MODIFICADA: Ahora muestra el ML en el carrito
 function renderCartItems() {
     const cartItemsContainer = document.getElementById('cart-items');
     const cartSubtotal = document.getElementById('cart-subtotal');
@@ -900,9 +993,9 @@ function renderCartItems() {
         if (existingForm) {
             existingForm.remove();
         }
- if (cartSubtotal) cartSubtotal.textContent = formatPrice(0);
-if (cartDiscount) cartDiscount.textContent = `-${formatPrice(0)}`;
-if (cartTotal) cartTotal.textContent = formatPrice(0);
+        if (cartSubtotal) cartSubtotal.textContent = formatPrice(0);
+        if (cartDiscount) cartDiscount.textContent = `-${formatPrice(0)}`;
+        if (cartTotal) cartTotal.textContent = formatPrice(0);
         if (window.discountCodeInput) window.discountCodeInput.value = '';
         if (window.discountMessage) window.discountMessage.textContent = '';
         discountApplied = false;
@@ -928,10 +1021,15 @@ if (cartTotal) cartTotal.textContent = formatPrice(0);
             gap: 15px;
         `;
 
+        // Mostrar el tamaño ML si está disponible
+        const mlInfo = item.ml_amount && item.ml_amount !== 'N/A' ? 
+            `<div class="cart-item-ml" style="color: #666; font-size: 0.9rem; margin-bottom: 5px;">${item.ml_amount} ML</div>` : '';
+
         cartItem.innerHTML = `
-                <img src="${getSafeImageUrl(item.image, item.name)}" alt="${item.name}" class="cart-item-image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
+            <img src="${getSafeImageUrl(item.image, item.name)}" alt="${item.name}" class="cart-item-image" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
             <div class="cart-item-details" style="flex: 1;">
                 <div class="cart-item-name" style="font-weight: 600; margin-bottom: 5px;">${item.name}</div>
+                ${mlInfo}
                 <div class="cart-item-price" style="color: #666; margin-bottom: 8px;">${formatPrice(item.price)}</div>
                 <div class="cart-item-quantity" style="display: flex; align-items: center; gap: 10px;">
                     <button class="decrease-quantity" data-id="${item.id}" style="width: 30px; height: 30px; border: 1px solid #ddd; background: white; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;">-</button>
@@ -1013,40 +1111,40 @@ if (cartTotal) cartTotal.textContent = formatPrice(0);
 
     const total = subtotal - discount;
 
-   if (cartSubtotal) cartSubtotal.textContent = formatPrice(subtotal);
-if (cartDiscount) cartDiscount.textContent = `-${formatPrice(discount)}`;
-if (cartTotal) cartTotal.textContent = formatPrice(total);
+    if (cartSubtotal) cartSubtotal.textContent = formatPrice(subtotal);
+    if (cartDiscount) cartDiscount.textContent = `-${formatPrice(discount)}`;
+    if (cartTotal) cartTotal.textContent = formatPrice(total);
 
     document.querySelectorAll('.remove-item').forEach(button => {
         button.addEventListener('click', (e) => {
-            const productId = parseInt(e.currentTarget.getAttribute('data-id'));
-            removeFromCart(productId);
+            const itemId = e.currentTarget.getAttribute('data-id');
+            removeFromCart(itemId);
         });
     });
 
     document.querySelectorAll('.increase-quantity').forEach(button => {
         button.addEventListener('click', (e) => {
-            const productId = parseInt(e.currentTarget.getAttribute('data-id'));
-            updateQuantity(productId, 1);
+            const itemId = e.currentTarget.getAttribute('data-id');
+            updateQuantity(itemId, 1);
         });
     });
 
     document.querySelectorAll('.decrease-quantity').forEach(button => {
         button.addEventListener('click', (e) => {
-            const productId = parseInt(e.currentTarget.getAttribute('data-id'));
-            updateQuantity(productId, -1);
+            const itemId = e.currentTarget.getAttribute('data-id');
+            updateQuantity(itemId, -1);
         });
     });
 }
 
-function updateQuantity(productId, change) {
-    const item = cart.find(item => item.id === productId);
+function updateQuantity(itemId, change) {
+    const item = cart.find(item => item.id === itemId);
     if (!item) return;
 
     item.quantity += change;
 
     if (item.quantity <= 0) {
-        removeFromCart(productId);
+        removeFromCart(itemId);
     } else {
         localStorage.setItem('auraCart', JSON.stringify(cart));
         updateCartCount();
@@ -1055,14 +1153,15 @@ function updateQuantity(productId, change) {
     }
 }
 
-function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
+function removeFromCart(itemId) {
+    cart = cart.filter(item => item.id !== itemId);
     localStorage.setItem('auraCart', JSON.stringify(cart));
     updateCartCount();
     renderCartItems();
     showToast('Producto eliminado del carrito');
 }
 
+// FUNCIÓN MODIFICADA: Ahora incluye información de ML en el mensaje de WhatsApp
 function checkoutWhatsApp() {
     if (cart.length === 0) {
         showToast('Tu carrito está vacío');
@@ -1091,11 +1190,12 @@ function checkoutWhatsApp() {
 
     cart.forEach(item => {
         const itemTotal = parseFloat(item.price) * item.quantity;
-        message += `➤ ${item.name}\n`;
+        // Incluir información de ML en el mensaje
+        const mlInfo = item.ml_amount && item.ml_amount !== 'N/A' ? ` (${item.ml_amount} ML)` : '';
+        message += `➤ ${item.name}${mlInfo}\n`;
         message += `   Cantidad: ${item.quantity}\n`;
         message += `   Precio unitario: ${formatPrice(item.price)}\n`;
         message += `   Subtotal: ${formatPrice(itemTotal)}\n\n`;
-
     });
 
     let subtotal = cart.reduce((sum, item) => {
@@ -1196,7 +1296,11 @@ function getLocalProducts(filter = 'all', searchTerm = '') {
                 "Intensidad: Alta"
             ],
             brand: "Aura",
-            section: "Premium"
+            section: "Premium",
+            product_prices: [
+                { ml_amount: 50, price: "94.99" },
+                { ml_amount: 100, price: "159.99" }
+            ]
         },
         {
             id: 2,
@@ -1213,7 +1317,11 @@ function getLocalProducts(filter = 'all', searchTerm = '') {
                 "Intensidad: Muy Alta"
             ],
             brand: "Aura",
-            section: "Luxury"
+            section: "Luxury",
+            product_prices: [
+                { ml_amount: 50, price: "124.99" },
+                { ml_amount: 100, price: "199.99" }
+            ]
         },
         {
             id: 3,
@@ -1230,7 +1338,12 @@ function getLocalProducts(filter = 'all', searchTerm = '') {
                 "Intensidad: Media"
             ],
             brand: "Aura",
-            section: "Essentials"
+            section: "Essentials",
+            product_prices: [
+                { ml_amount: 30, price: "79.99" },
+                { ml_amount: 50, price: "119.99" },
+                { ml_amount: 100, price: "189.99" }
+            ]
         }
     ];
 
@@ -1269,6 +1382,10 @@ function getLocalProductById(productId) {
             images: [
                 "https://images.unsplash.com/photo-1547887537-6158d64c35b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
                 "https://images.unsplash.com/photo-1590736969955-1d0c89c6c8a8?ixlib=rb-4.0.3&auto=format&fit=crop&w=687&q=80"
+            ],
+            product_prices: [
+                { ml_amount: 50, price: "94.99" },
+                { ml_amount: 100, price: "159.99" }
             ]
         },
         {
@@ -1290,6 +1407,10 @@ function getLocalProductById(productId) {
             images: [
                 "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=688&q=80",
                 "https://images.unsplash.com/photo-1544441893-675973e31985?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80"
+            ],
+            product_prices: [
+                { ml_amount: 50, price: "124.99" },
+                { ml_amount: 100, price: "199.99" }
             ]
         },
         {
@@ -1311,6 +1432,11 @@ function getLocalProductById(productId) {
             images: [
                 "https://images.unsplash.com/photo-1615634376653-57222ba1e7b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80",
                 "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=1074&q=80"
+            ],
+            product_prices: [
+                { ml_amount: 30, price: "79.99" },
+                { ml_amount: 50, price: "119.99" },
+                { ml_amount: 100, price: "189.99" }
             ]
         }
     ];
@@ -1318,15 +1444,15 @@ function getLocalProductById(productId) {
     return localProducts.find(product => product.id === productId);
 }
 
+// FUNCIÓN MODIFICADA: Ahora pasa la información de ML al agregar al carrito
 async function openProductModal(productId) {
     try {
-        // Incrementar contador de clicks cuando se abre el modal
         await incrementClickCount(productId);
         
         let product;
 
-        if (window.supabaseClient && typeof window.supabaseClient.getProductById === 'function') {
-            product = await window.supabaseClient.getProductById(productId);
+        if (window.supabaseClient && typeof window.supabaseClient.getProductWithPricesById === 'function') {
+            product = await window.supabaseClient.getProductWithPricesById(productId);
         } else {
             console.warn('⚠️ Supabase no disponible - usando datos locales');
             product = getLocalProductById(productId);
@@ -1338,8 +1464,10 @@ async function openProductModal(productId) {
         }
 
         const productImages = getProductImages(product);
+        const prices = product.product_prices || [];
 
         console.log('🖼️ Imágenes para modal:', productImages);
+        console.log('💰 Precios para modal:', prices);
 
         const modalBody = document.getElementById('modal-body');
         if (!modalBody) return;
@@ -1379,20 +1507,27 @@ async function openProductModal(productId) {
             <div class="modal-info">
                 <p class="modal-category">${getCategoryName(product.category)}</p>
                 <h2 class="modal-name">${product.name}</h2>
-                <div class="price-info">
+                
+                <div class="modal-price-section">
                     <span class="price-label">Precio Abonando con Transferencia/Efectivo</span>
-                    <p class="modal-price">${formatPrice(product.price)}</p>
+                    ${renderMLSelector(prices, productId)}
                 </div>
+                
                 <p class="modal-description">${product.description}</p>
+                
+                ${product.details && product.details.length > 0 ? `
                 <div class="modal-details">
                     <h4>Detalles de la Fragancia</h4>
                     <ul>
-                        ${product.details && typeof product.details === 'string' ?
-                JSON.parse(product.details).map(detail => `<li>${detail}</li>`).join('') :
-                (product.details ? product.details.map(detail => `<li>${detail}</li>`).join('') : '')
-            }
+                        ${Array.isArray(product.details) ? 
+                            product.details.map(detail => `<li>${detail}</li>`).join('') : 
+                            (typeof product.details === 'string' ? 
+                                JSON.parse(product.details).map(detail => `<li>${detail}</li>`).join('') : '')
+                        }
                     </ul>
                 </div>
+                ` : ''}
+                
                 <div class="modal-actions">
                     <button class="btn btn-whatsapp consult-whatsapp" data-id="${product.id}">
                         <i class="fab fa-whatsapp"></i> Consultar por WhatsApp
@@ -1404,17 +1539,24 @@ async function openProductModal(productId) {
             </div>
         `;
 
-        const mainImage = document.getElementById('gallery-main-img');
-        if (mainImage) {
-            mainImage.addEventListener('click', function () {
-                console.log('🖱️ Click en imagen principal del modal');
-            });
-        }
-
-        const thumbnails = document.querySelectorAll('.gallery-thumb img');
-        thumbnails.forEach(thumb => {
-            thumb.addEventListener('click', function () {
-                console.log('🖱️ Click en miniatura del modal');
+        const modalMLOptions = modalBody.querySelectorAll('.ml-option');
+        modalMLOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const productId = this.getAttribute('data-product');
+                const container = this.closest('.modal-info');
+                if (!container) return;
+                
+                container.querySelectorAll('.ml-option').forEach(opt => {
+                    opt.classList.remove('active');
+                });
+                
+                this.classList.add('active');
+                
+                const priceDisplay = container.querySelector('.price-display');
+                const price = this.getAttribute('data-price');
+                if (priceDisplay) {
+                    priceDisplay.textContent = formatPrice(price);
+                }
             });
         });
 
@@ -1422,18 +1564,45 @@ async function openProductModal(productId) {
             initGallery(productImages);
         }
 
-        const consultBtn = document.querySelector('.consult-whatsapp');
-        const addToCartBtn = document.querySelector('.add-to-cart-modal');
+        const consultBtn = modalBody.querySelector('.consult-whatsapp');
+        const addToCartBtn = modalBody.querySelector('.add-to-cart-modal');
 
         if (consultBtn) {
             consultBtn.addEventListener('click', () => {
-                consultWhatsApp(product);
+                // Obtener el ML y precio seleccionado para WhatsApp
+                const selectedOption = modalBody.querySelector('.ml-option.active');
+                let selectedPrice = product.price;
+                let selectedML = null;
+                
+                if (selectedOption) {
+                    selectedPrice = selectedOption.getAttribute('data-price');
+                    selectedML = selectedOption.getAttribute('data-ml');
+                } else if (prices.length > 0) {
+                    selectedPrice = prices[0].price;
+                    selectedML = prices[0].ml_amount;
+                }
+                
+                consultWhatsApp(product, selectedML, selectedPrice);
             });
         }
 
         if (addToCartBtn) {
             addToCartBtn.addEventListener('click', () => {
-                addToCart(product);
+                // Obtener el ML y precio seleccionado para el carrito
+                const selectedOption = modalBody.querySelector('.ml-option.active');
+                let selectedPrice = product.price;
+                let selectedML = null;
+                
+                if (selectedOption) {
+                    selectedPrice = selectedOption.getAttribute('data-price');
+                    selectedML = selectedOption.getAttribute('data-ml');
+                } else if (prices.length > 0) {
+                    selectedPrice = prices[0].price;
+                    selectedML = prices[0].ml_amount;
+                }
+                
+                // Pasar la información de ML al agregar al carrito
+                addToCart(product, selectedML, selectedPrice);
                 closeProductModal();
             });
         }
@@ -1497,9 +1666,15 @@ function initGallery(images) {
     }
 }
 
-function consultWhatsApp(product) {
+// FUNCIÓN CORREGIDA: Ahora usa el precio y ML seleccionados
+function consultWhatsApp(product, selectedML = null, selectedPrice = null) {
     const phoneNumber = "5493584170048";
-    const message = `Hola, estoy interesado en el perfume ${product.name} (${formatPrice(product.price)}). ¿Podrían darme más información?`;
+    
+    // Usar el precio seleccionado si está disponible, sino el precio por defecto
+    const priceToUse = selectedPrice || product.price;
+    const mlInfo = selectedML ? ` (${selectedML} ML)` : '';
+    
+    const message = `Hola, estoy interesado en el perfume ${product.name}${mlInfo} (${formatPrice(priceToUse)}). ¿Podrían darme más información?`;
     const encodedMessage = encodeURIComponent(message);
     const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
 
