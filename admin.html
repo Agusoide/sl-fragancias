@@ -53,45 +53,43 @@
             <!-- Content Area -->
             <section class="admin-content">
                 <!-- Sección Productos -->
-<!-- En tu admin.html, dentro de la sección de productos -->
-<div id="products-section" class="content-section active">
-    <div class="section-header">
-        <h2>Gestión de Productos</h2>
-        <button id="add-product-btn" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nuevo Producto
-        </button>
-    </div>
-    
-    <!-- Sistema de búsqueda profesional -->
-    <div class="search-container">
-        <div class="search-header">
-            <h3 class="search-title">Buscar Productos</h3>
-            <div class="search-controls">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input 
-                        type="text" 
-                        id="product-search" 
-                        placeholder="Buscar por nombre, marca, categoría..."
-                        aria-label="Buscar productos"
-                    >
-                    <button id="clear-search" class="btn-clear" style="display: none;" aria-label="Limpiar búsqueda">
-                        <i class="fas fa-times"></i>
-                    </button>
+                <!-- En tu admin.html, dentro de la sección de productos -->
+                <div id="products-section" class="content-section active">
+                    <div class="section-header">
+                        <h2>Gestión de Productos</h2>
+                        <button id="add-product-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Nuevo Producto
+                        </button>
+                    </div>
+
+                    <!-- Sistema de búsqueda profesional -->
+                    <div class="search-container">
+                        <div class="search-header">
+                            <h3 class="search-title">Buscar Productos</h3>
+                            <div class="search-controls">
+                                <div class="search-box">
+                                    <i class="fas fa-search"></i>
+                                    <input type="text" id="product-search"
+                                        placeholder="Buscar por nombre, marca, categoría..."
+                                        aria-label="Buscar productos">
+                                    <button id="clear-search" class="btn-clear" style="display: none;"
+                                        aria-label="Limpiar búsqueda">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="search-stats">
+                            <div id="search-info" class="search-info">Todos los productos</div>
+                            <div class="search-results-count">0 productos</div>
+                        </div>
+                    </div>
+
+                    <!-- Grid de productos -->
+                    <div id="admin-products-container" class="products-grid">
+                        <!-- Los productos se cargarán aquí dinámicamente -->
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="search-stats">
-            <div id="search-info" class="search-info">Todos los productos</div>
-            <div class="search-results-count">0 productos</div>
-        </div>
-    </div>
-    
-    <!-- Grid de productos -->
-    <div id="admin-products-container" class="products-grid">
-        <!-- Los productos se cargarán aquí dinámicamente -->
-    </div>
-</div>
 
                 <!-- Sección Pedidos -->
                 <div id="orders-section" class="content-section">
@@ -145,91 +143,100 @@
             </section>
         </main>
     </div>
+<!-- Modal para Productos -->
+<div class="modal" id="product-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="product-modal-title">Nuevo Producto</h3>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="product-form">
+                <input type="hidden" id="product-id">
 
-    <!-- Modal para Productos -->
-    <div class="modal" id="product-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="product-modal-title">Nuevo Producto</h3>
-                <span class="close-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="product-form">
-                    <input type="hidden" id="product-id">
+                <div class="form-group">
+                    <label for="product-name">Nombre del Producto</label>
+                    <input type="text" id="product-name" required>
+                </div>
 
+                <div class="form-row">
                     <div class="form-group">
-                        <label for="product-name">Nombre del Producto</label>
-                        <input type="text" id="product-name" required>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="product-category">Categoría</label>
-                            <select id="product-category" required>
-                                <option value="women">Mujeres</option>
-                                <option value="men">Hombres</option>
-                                <option value="unisex">Unisex</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="product-price">Precio ($)</label>
-                            <input type="number" id="product-price" step="0.01" min="0" required>
-                        </div>
+                        <label for="product-category">Categoría</label>
+                        <select id="product-category" required>
+                            <option value="women">Mujeres</option>
+                            <option value="men">Hombres</option>
+                            <option value="unisex">Unisex</option>
+                        </select>
                     </div>
 
                     <div class="form-group">
                         <label for="product-brand">Marca</label>
                         <input type="text" id="product-brand" required>
                     </div>
+                </div>
 
-                    <!-- <div class="form-group">
-                        <label for="product-section">Sección</label>
-                        <input type="text" id="product-section" >
-                    </div> -->
-
-                    <div class="form-group">
-                        <label for="product-description">Descripción</label>
-                        <textarea id="product-description" rows="4" required></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Imágenes del Producto</label>
-                        <div class="images-upload-container">
-                            <div class="upload-area" id="upload-area">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                                <p>Arrastra imágenes aquí o haz clic para seleccionar</p>
-                                <small class="upload-hint">💡 Mantén Ctrl (Windows) o Cmd (Mac) para seleccionar
-                                    múltiples imágenes</small>
-                                <input type="file" id="image-upload" multiple accept="image/*" style="display: none;">
+                <!-- PRECIOS POR ML - MOVIDO FUERA DEL FORM-ROW -->
+                <div class="form-group">
+                    <label>Precios por ML</label>
+                    <div id="prices-container">
+                        <!-- Los campos de precios se agregarán aquí dinámicamente -->
+                        <div class="price-item">
+                            <div class="price-inputs">
+                                <input type="number" class="ml-amount" placeholder="ML (ej: 50)" step="1" min="1" required>
+                                <input type="number" class="price-value" placeholder="Precio ($)" step="0.01" min="0" required>
                             </div>
-                            <div class="images-preview" id="images-preview">
-                                <!-- Las imágenes previsualizadas aparecerán aquí -->
-                            </div>
+                            <button type="button" class="remove-price" style="display: none;">×</button>
                         </div>
                     </div>
+                    <button type="button" id="add-price-btn" class="btn btn-secondary">
+                        <i class="fas fa-plus"></i> Añadir ML y Precio
+                    </button>
+                    <small class="form-hint">Agrega al menos un tamaño de ML con su precio correspondiente</small>
+                </div>
 
-                    <div class="form-group">
-                        <label>Detalles de la Fragancia</label>
-                        <div id="details-container">
-                            <div class="detail-item">
-                                <input type="text" class="detail-input" placeholder="Ej: Notas de salida: Bergamota">
-                                <button type="button" class="remove-detail" style="display: none;">×</button>
-                            </div>
+                <div class="form-group">
+                    <label for="product-description">Descripción</label>
+                    <textarea id="product-description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Imágenes del Producto</label>
+                    <div class="images-upload-container">
+                        <div class="upload-area" id="upload-area">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Arrastra imágenes aquí o haz clic para seleccionar</p>
+                            <small class="upload-hint">💡 Mantén Ctrl (Windows) o Cmd (Mac) para seleccionar
+                                múltiples imágenes</small>
+                            <input type="file" id="image-upload" multiple accept="image/*" style="display: none;">
                         </div>
-                        <button type="button" id="add-detail-btn" class="btn btn-secondary">
-                            <i class="fas fa-plus"></i> Añadir Detalle
-                        </button>
+                        <div class="images-preview" id="images-preview">
+                            <!-- Las imágenes previsualizadas aparecerán aquí -->
+                        </div>
                     </div>
+                </div>
 
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-cancel" id="cancel-product">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="save-product">Guardar Producto</button>
+                <div class="form-group">
+                    <label>Detalles de la Fragancia</label>
+                    <div id="details-container">
+                        <div class="detail-item">
+                            <input type="text" class="detail-input" placeholder="Ej: Notas de salida: Bergamota">
+                            <button type="button" class="remove-detail" style="display: none;">×</button>
+                        </div>
                     </div>
-                </form>
-            </div>
+                    <button type="button" id="add-detail-btn" class="btn btn-secondary">
+                        <i class="fas fa-plus"></i> Añadir Detalle
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-cancel" id="cancel-product">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="save-product">Guardar Producto</button>
+                </div>
+            </form>
         </div>
     </div>
+</div>
+
 
     <!-- Modal para Códigos de Descuento -->
     <div class="modal" id="discount-modal">
