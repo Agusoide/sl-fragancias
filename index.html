@@ -163,7 +163,16 @@
                         <i class="fas fa-search"></i>
                     </button>
                 </div>
+                <div class="sort-container">
+    <label for="sort-select">Ordenar por:</label>
+    <select id="sort-select" class="sort-select">
+        <option value="popular" selected>🎯 Más Populares </option>
+        <option value="name_asc">🔤 A - Z</option>
+        <option value="name_desc">🔤 Z - A</option>
+    </select>
+</div>
             </div>
+
 
             <div class="filter-buttons">
                 <button class="filter-btn active" data-filter="all">Todos</button>
@@ -172,14 +181,6 @@
                 <button class="filter-btn" data-filter="unisex">Unisex</button>
             </div>
 
-<div class="sort-container">
-    <label for="sort-select">Ordenar por:</label>
-    <select id="sort-select" class="sort-select">
-        <option value="popular" selected>🎯 Más Populares </option>
-        <option value="name_asc">🔤 A - Z</option>
-        <option value="name_desc">🔤 Z - A</option>
-    </select>
-</div>
             <div class="products-grid" id="products-container">
                 <!-- Los productos se cargarán dinámicamente con JavaScript -->
             </div>
