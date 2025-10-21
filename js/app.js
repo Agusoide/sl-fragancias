@@ -260,7 +260,6 @@ function sortProducts(products, sortType) {
             });
     }
 }
-
 function displayFeaturedProducts(products) {
     const featuredContainer = document.createElement('div');
     featuredContainer.className = 'featured-products';
@@ -276,7 +275,7 @@ function displayFeaturedProducts(products) {
     
     featuredContainer.innerHTML = `
         <div class="featured-title">
-            <h3>Fragancias Más Populares <span class="featured-badge">🔥 Destacadas</span></h3>
+            <h3>Fragancias Más Populares <span class="section-badge">🔥 Destacadas</span></h3>
             <p>Descubre las esencias favoritas de nuestra comunidad</p>
         </div>
         <div class="featured-grid" id="featured-products-container">
@@ -297,8 +296,9 @@ function displayFeaturedProducts(products) {
         const productCard = document.createElement('div');
         productCard.className = 'product-card featured-product-card';
         productCard.innerHTML = `
-            <div class="popular-badge">🔥 Destacada</div>
             <div class="product-image">
+                <!-- BADGE CORREGIDO - ahora dice "Destacada" en singular -->
+                <div class="featured-badge">🔥 Destacada</div>
                 <img src="${mainImage}" alt="${product.name}" loading="lazy" 
                      onerror="this.src='${createImagePlaceholder(product.name)}'"
                      class="product-main-image"
@@ -325,6 +325,7 @@ function displayFeaturedProducts(products) {
             featuredGrid.appendChild(productCard);
         }
     });
+
     
     initializeMLSelectors();
     
