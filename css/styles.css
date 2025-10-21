@@ -2250,21 +2250,19 @@ body.mobile-menu-open header {
 }
 
 .popular-badge {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: linear-gradient(135deg, #e74c3c, #c0392b);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    z-index: 3;
-    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    animation: gentleGlow 2s ease-in-out infinite alternate;
+  background: linear-gradient(135deg, #d4af37, #f4e4a0);
+    color: #1a1a1a;
+    padding: 8px 20px;
+    border-radius: 25px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-left: 140px;
+    animation: subtlePulse 3s ease-in-out infinite;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 @keyframes gentleGlow {
@@ -2469,3 +2467,101 @@ body.mobile-menu-open header {
 
 /* ===== SOLO CUANDO SE SELECCIONA "MÁS POPULARES" ===== */
 /* Los estilos .featured-products solo se aplicarán cuando el usuario elija esa opción */
+
+/* Estilos para el sistema de precios por ML */
+.ml-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.ml-option {
+    padding: 8px 16px;
+    border: 2px solid #e9ecef;
+    border-radius: 100px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-align: center;
+    min-width: 70px;
+}
+
+.ml-option:hover {
+    border-color: #71882b88;
+    transform: translateY(-1px);
+}
+
+.ml-option.active {
+    border-color: #656b549b;
+    background: #616e20f9;
+    color: white;
+}
+
+.price-display {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #303d1f;
+    margin: 10px 0;
+    min-height: 2rem;
+}
+
+.single-price {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.ml-size {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+.no-prices {
+    color: #999;
+    font-style: italic;
+    text-align: center;
+    padding: 10px;
+}
+
+/* Estilos específicos para el modal */
+.modal-price-section {
+    margin: 15px 0;
+}
+
+.modal-price-section .ml-selector {
+    justify-content: center;
+}
+
+.modal-price-section .price-display {
+    font-size: 1.8rem;
+    text-align: center;
+}
+
+/* Estilos para productos destacados */
+.featured-product-card .ml-selector {
+    justify-content: center;
+}
+
+.featured-product-card .price-display {
+    font-size: 1.3rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .ml-option {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        min-width: 60px;
+    }
+    
+    .price-display {
+        font-size: 1.3rem;
+    }
+    
+    .modal-price-section .price-display {
+        font-size: 1.5rem;
+    }
+}
