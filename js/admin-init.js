@@ -109,8 +109,8 @@ function addPriceField(ml = '', price = '') {
 
     // Mostrar botón de eliminar solo si hay más de un precio
     updatePriceRemoveButtons();
-    
-    priceItem.querySelector('.remove-price').addEventListener('click', function() {
+
+    priceItem.querySelector('.remove-price').addEventListener('click', function () {
         priceItem.remove();
         updatePriceRemoveButtons();
     });
@@ -120,7 +120,7 @@ function addPriceField(ml = '', price = '') {
 function updatePriceRemoveButtons() {
     const priceItems = document.querySelectorAll('.price-item');
     const removeButtons = document.querySelectorAll('.remove-price');
-    
+
     if (priceItems.length > 1) {
         removeButtons.forEach(btn => btn.style.display = 'block');
     } else {
@@ -132,13 +132,13 @@ function updatePriceRemoveButtons() {
 function getPricesFromForm() {
     const priceItems = document.querySelectorAll('.price-item');
     const prices = [];
-    
+
     priceItems.forEach(item => {
         const mlInput = item.querySelector('.ml-amount');
         const priceInput = item.querySelector('.price-value');
         const ml = parseFloat(mlInput.value);
         const price = parseFloat(priceInput.value);
-        
+
         if (ml && price && !isNaN(ml) && !isNaN(price)) {
             prices.push({
                 ml_amount: ml,
@@ -146,7 +146,7 @@ function getPricesFromForm() {
             });
         }
     });
-    
+
     return prices;
 }
 
@@ -158,9 +158,9 @@ async function loadProductPrices(productId) {
             .select('*')
             .eq('product_id', productId)
             .order('ml_amount', { ascending: true });
-            
+
         if (error) throw error;
-        
+
         return prices || [];
     } catch (error) {
         console.error('Error cargando precios:', error);
@@ -176,23 +176,23 @@ async function saveProductPrices(productId, prices) {
             .from('product_prices')
             .delete()
             .eq('product_id', productId);
-            
+
         if (deleteError) throw deleteError;
-        
+
         // Insertar nuevos precios si hay alguno
         if (prices.length > 0) {
             const pricesWithProductId = prices.map(price => ({
                 ...price,
                 product_id: productId
             }));
-            
+
             const { error: insertError } = await window.supabaseClient.supabase
                 .from('product_prices')
                 .insert(pricesWithProductId);
-                
+
             if (insertError) throw insertError;
         }
-        
+
         return true;
     } catch (error) {
         console.error('Error guardando precios:', error);
@@ -681,7 +681,7 @@ async function handleProductSubmit(e) {
 
         const productData = {
             name: document.getElementById('product-name').value,
-            category: document.getElementById('product-category').value,
+            category: document.getElementById('product-category').value || 'women', // ← AGREGA VALOR POR DEFECTO
             // NOTA: El campo price ya no se usa, se maneja en la tabla product_prices
             brand: document.getElementById('product-brand').value,
             description: document.getElementById('product-description').value,
@@ -689,10 +689,21 @@ async function handleProductSubmit(e) {
             image: uploadedImages.length > 0 ? uploadedImages[0] : null,
             images: uploadedImages.length > 0 ? uploadedImages : null
         };
+        // AGREGAR VALIDACIÓN EXTRA PARA CAMPOS REQUERIDOS
+        // VALIDACIÓN MEJORADA:
+        if (!productData.name || productData.name.trim() === '') {
+            showMessage('El nombre del producto es obligatorio', 'error');
+            return;
+        }
+
+        if (!productData.category) {
+            showMessage('La categoría es obligatoria', 'error');
+            return;
+        }
 
         // Remover campos vacíos o nulos
         Object.keys(productData).forEach(key => {
-            if (productData[key] === null || productData[key] === undefined || 
+            if (productData[key] === null || productData[key] === undefined ||
                 (Array.isArray(productData[key]) && productData[key].length === 0)) {
                 delete productData[key];
             }
@@ -777,10 +788,10 @@ function formatPrice(price) {
 // Función auxiliar para mostrar el rango de precios
 function getPriceRange(prices) {
     if (!prices || prices.length === 0) return 'Sin precios';
-    
+
     const minPrice = Math.min(...prices.map(p => p.price));
     const maxPrice = Math.max(...prices.map(p => p.price));
-    
+
     if (minPrice === maxPrice) {
         return formatPrice(minPrice);
     } else {
@@ -898,7 +909,7 @@ async function editProduct(productId) {
         const pricesContainer = document.getElementById('prices-container');
         if (pricesContainer) {
             pricesContainer.innerHTML = '';
-            
+
             const prices = await loadProductPrices(productId);
             if (prices.length > 0) {
                 prices.forEach(price => {
