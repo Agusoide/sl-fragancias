@@ -2,6 +2,10 @@
 console.log('🔧 Inicializando panel de administración...');
 let allProducts = [];
 
+// Variables globales para manejar imágenes
+let imagesToDelete = [];
+let currentEditingProduct = null;
+
 function shouldInitializeAdmin() {
     return document.querySelector('.admin-container') ||
         window.location.pathname.includes('admin.html') ||
@@ -504,6 +508,10 @@ async function deleteDiscountCode(discountId) {
 function showProductModal() {
     console.log('🔄 Abriendo modal de producto...');
 
+    // Limpiar variables temporales de imágenes
+    imagesToDelete = [];
+    currentEditingProduct = null;
+
     const modal = document.getElementById('product-modal');
     const overlay = document.getElementById('overlay');
     const imageUpload = document.getElementById('image-upload');
@@ -677,19 +685,40 @@ async function handleProductSubmit(e) {
         console.log('📋 Detalles capturados:', fragranceDetails);
         console.log('💰 Precios por ML capturados:', prices);
 
-        const uploadedImages = await uploadProductImages();
+        // SUBIR NUEVAS IMÁGENES
+        const newUploadedImages = await uploadProductImages();
+        
+        // MANEJAR IMÁGENES EXISTENTES Y NUEVAS
+        let finalImages = [];
+        
+        if (isEditing) {
+            // Obtener imágenes existentes que no fueron eliminadas
+            const existingImageInputs = document.querySelectorAll('input[name="existing-images"]');
+            const remainingExistingImages = Array.from(existingImageInputs).map(input => input.value);
+            
+            // Combinar imágenes existentes (no eliminadas) con nuevas
+            finalImages = [...remainingExistingImages, ...newUploadedImages];
+            
+            // Eliminar imágenes marcadas para borrar del storage
+            if (imagesToDelete.length > 0) {
+                await deleteImagesFromStorage(imagesToDelete);
+            }
+        } else {
+            finalImages = newUploadedImages;
+        }
+
+        console.log('🖼️ Imágenes finales:', finalImages);
 
         const productData = {
             name: document.getElementById('product-name').value,
-            category: document.getElementById('product-category').value || 'women', // ← AGREGA VALOR POR DEFECTO
-            // NOTA: El campo price ya no se usa, se maneja en la tabla product_prices
+            category: document.getElementById('product-category').value || 'women',
             brand: document.getElementById('product-brand').value,
             description: document.getElementById('product-description').value,
             details: fragranceDetails,
-            image: uploadedImages.length > 0 ? uploadedImages[0] : null,
-            images: uploadedImages.length > 0 ? uploadedImages : null
+            image: finalImages.length > 0 ? finalImages[0] : null,
+            images: finalImages.length > 0 ? finalImages : null
         };
-        // AGREGAR VALIDACIÓN EXTRA PARA CAMPOS REQUERIDOS
+
         // VALIDACIÓN MEJORADA:
         if (!productData.name || productData.name.trim() === '') {
             showMessage('El nombre del producto es obligatorio', 'error');
@@ -739,6 +768,10 @@ async function handleProductSubmit(e) {
         // Guardar los precios por ML
         await saveProductPrices(savedProduct.id, prices);
 
+        // Limpiar variables temporales
+        imagesToDelete = [];
+        currentEditingProduct = null;
+
         console.log('✅ Precios por ML guardados');
         showMessage(`Producto ${isEditing ? 'actualizado' : 'creado'} correctamente`, 'success');
         hideAllModals();
@@ -748,6 +781,80 @@ async function handleProductSubmit(e) {
         console.error('❌ Error guardando producto:', error);
         showMessage('Error al guardar el producto: ' + error.message, 'error');
     }
+}
+
+// NUEVA FUNCIÓN: Eliminar imágenes del storage
+async function deleteImagesFromStorage(imageUrls) {
+    try {
+        console.log('🗑️ Eliminando imágenes del storage:', imageUrls);
+        
+        for (const imageUrl of imageUrls) {
+            // Extraer el path del archivo de la URL
+            const pathMatch = imageUrl.match(/product-images\/([^?]+)/);
+            if (pathMatch) {
+                const filePath = pathMatch[0];
+                const { error } = await window.supabaseClient.supabase.storage
+                    .from('product-images')
+                    .remove([filePath]);
+                
+                if (error) {
+                    console.error('❌ Error eliminando imagen:', filePath, error);
+                } else {
+                    console.log('✅ Imagen eliminada del storage:', filePath);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error en eliminación de imágenes:', error);
+    }
+}
+
+// NUEVA FUNCIÓN: Agregar imagen existente al preview con funcionalidad completa
+function addExistingImageToPreview(imageUrl, index, isExisting = false) {
+    const preview = document.getElementById('images-preview');
+    const imgContainer = document.createElement('div');
+    imgContainer.className = 'image-preview-item';
+    imgContainer.setAttribute('data-image-url', imageUrl);
+    imgContainer.setAttribute('data-existing', isExisting);
+    imgContainer.draggable = true;
+    
+    const imageName = isExisting ? `Imagen ${index + 1}` : 'Nueva imagen';
+    
+    imgContainer.innerHTML = `
+        <div class="order-indicator">${index + 1}</div>
+        <div class="preview-header">
+            <span class="image-name">${imageName}</span>
+            <button type="button" class="remove-image">×</button>
+        </div>
+        <img src="${imageUrl}" alt="Imagen del producto">
+        <div class="image-info">${isExisting ? 'Imagen existente' : 'Imagen nueva'}</div>
+        ${isExisting ? '<input type="hidden" name="existing-images" value="' + imageUrl + '">' : ''}
+    `;
+    
+    preview.appendChild(imgContainer);
+
+    // Configurar evento para eliminar imagen
+    imgContainer.querySelector('.remove-image').addEventListener('click', function(e) {
+        e.stopPropagation();
+        removeImageFromPreview(this, isExisting, imageUrl);
+    });
+
+    updateImageOrder();
+}
+
+// NUEVA FUNCIÓN: Eliminar imagen del preview
+function removeImageFromPreview(button, isExisting, imageUrl) {
+    const imgContainer = button.closest('.image-preview-item');
+    
+    if (isExisting) {
+        // Marcar imagen existente para eliminación
+        imagesToDelete.push(imageUrl);
+        console.log('🗑️ Imagen marcada para eliminación:', imageUrl);
+    }
+    
+    imgContainer.remove();
+    updateUploadAreaFeedback();
+    updateImageOrder();
 }
 
 async function reloadAdminProducts() {
@@ -887,16 +994,17 @@ async function editProduct(productId) {
             .eq('id', productId)
             .single();
 
-        if (error) {
-            throw error;
-        }
-
+        if (error) throw error;
         if (!product) {
             showMessage('Producto no encontrado', 'error');
             return;
         }
 
-        console.log('📦 Producto a editar:', product);
+        // Guardar referencia a las imágenes existentes
+        currentEditingProduct = {
+            id: productId,
+            existingImages: product.images || []
+        };
 
         // Cargar datos básicos del producto
         document.getElementById('product-id').value = product.id;
@@ -940,24 +1048,17 @@ async function editProduct(productId) {
             }
         }
 
-        // MOSTRAR IMÁGENES EXISTENTES AL EDITAR
+        // MOSTRAR IMÁGENES EXISTENTES CON BOTÓN DE ELIMINAR FUNCIONAL
         const imagesPreview = document.getElementById('images-preview');
-        if (imagesPreview && product.images && Array.isArray(product.images)) {
+        if (imagesPreview) {
             imagesPreview.innerHTML = '';
-            product.images.forEach((imageUrl, index) => {
-                const imgContainer = document.createElement('div');
-                imgContainer.className = 'image-preview-item';
-                imgContainer.innerHTML = `
-                    <div class="order-indicator">${index + 1}</div>
-                    <div class="preview-header">
-                        <span class="image-name">Imagen ${index + 1}</span>
-                        <button type="button" class="remove-image">×</button>
-                    </div>
-                    <img src="${imageUrl}" alt="Imagen del producto">
-                    <div class="image-info">Imagen existente</div>
-                `;
-                imagesPreview.appendChild(imgContainer);
-            });
+            
+            if (product.images && Array.isArray(product.images)) {
+                product.images.forEach((imageUrl, index) => {
+                    addExistingImageToPreview(imageUrl, index, true);
+                });
+            }
+            
             updateUploadAreaFeedback();
         }
 
@@ -1025,31 +1126,62 @@ function handleImageUpload(files) {
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            const imgContainer = document.createElement('div');
-            imgContainer.className = 'image-preview-item';
-            imgContainer.draggable = true;
-            imgContainer.innerHTML = `
-                <div class="order-indicator">${preview.children.length + 1}</div>
-                <div class="preview-header">
-                    <span class="image-name">${file.name}</span>
-                    <button type="button" class="remove-image">×</button>
-                </div>
-                <img src="${e.target.result}" alt="Preview de ${file.name}">
-                <div class="image-info">${(file.size / 1024).toFixed(1)} KB</div>
-            `;
-            preview.appendChild(imgContainer);
-
-            imgContainer.querySelector('.remove-image').addEventListener('click', (e) => {
-                e.stopPropagation();
-                console.log('🗑️ Eliminando imagen de preview:', file.name);
-                imgContainer.remove();
-                updateUploadAreaFeedback();
-                updateImageOrder();
-            });
+            addNewImageToPreview(file.name, e.target.result, file.size);
         };
         reader.readAsDataURL(file);
     });
 
+    updateUploadAreaFeedback();
+    updateImageOrder();
+}
+
+// NUEVA FUNCIÓN: Agregar nueva imagen al preview
+function addNewImageToPreview(filename, dataUrl, fileSize) {
+    const preview = document.getElementById('images-preview');
+    const imgContainer = document.createElement('div');
+    imgContainer.className = 'image-preview-item';
+    imgContainer.draggable = true;
+    
+    imgContainer.innerHTML = `
+        <div class="order-indicator">${preview.children.length + 1}</div>
+        <div class="preview-header">
+            <span class="image-name">${filename}</span>
+            <button type="button" class="remove-image">×</button>
+        </div>
+        <img src="${dataUrl}" alt="Preview de ${filename}">
+        <div class="image-info">${(fileSize / 1024).toFixed(1)} KB - Nueva imagen</div>
+    `;
+    
+    preview.appendChild(imgContainer);
+
+    // Configurar evento para eliminar imagen
+    imgContainer.querySelector('.remove-image').addEventListener('click', function(e) {
+        e.stopPropagation();
+        removeNewImageFromPreview(this, filename);
+    });
+}
+
+// NUEVA FUNCIÓN: Eliminar nueva imagen del preview
+function removeNewImageFromPreview(button, filename) {
+    const imgContainer = button.closest('.image-preview-item');
+    
+    // Remover el archivo del input file
+    const imageUpload = document.getElementById('image-upload');
+    if (imageUpload && imageUpload.files) {
+        const dt = new DataTransfer();
+        const files = Array.from(imageUpload.files);
+        
+        files.forEach(file => {
+            if (file.name !== filename) {
+                dt.items.add(file);
+            }
+        });
+        
+        imageUpload.files = dt.files;
+        console.log('🗑️ Imagen nueva removida del input:', filename);
+    }
+    
+    imgContainer.remove();
     updateUploadAreaFeedback();
     updateImageOrder();
 }
