@@ -199,6 +199,34 @@
         const SUPABASE_URL = 'https://qrfreqfvlcopgqtwgflk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyZnJlcWZ2bGNvcGdxdHdnZmxrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2MjMwOTQsImV4cCI6MjA3NjE5OTA5NH0.uRCBXb_uF9pIag5uOKvoRVwy_RXlzPq54tiLOdlowkA';
         
+        // Lista de contraseñas comunes/débiles a bloquear
+        const weakPasswords = [
+            'password', '123456', 'password123', 'admin', 'qwerty',
+            '12345678', '111111', '1234567890', '1234567', '123123',
+            'abc123', 'monkey', 'letmein', 'master', 'login',
+            'welcome', 'passw0rd', '1234', '12345', '123456789'
+        ];
+
+        // Función de validación de contraseña
+        function validatePasswordStrength(password) {
+            // Verificar contra contraseñas débiles
+            if (weakPasswords.includes(password.toLowerCase())) {
+                return 'Esta contraseña es muy común y no es segura';
+            }
+            
+            // Verificar longitud mínima
+            if (password.length < 8) {
+                return 'La contraseña debe tener al menos 8 caracteres';
+            }
+            
+            // Verificar complejidad
+            if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+                return 'La contraseña debe incluir mayúsculas, minúsculas y números';
+            }
+            
+            return null; // Contraseña válida
+        }
+
         console.log('🔧 Inicializando Supabase para login...');
         
         // Inicializar cuando Supabase esté disponible
@@ -224,15 +252,6 @@
         
         function setupLogin(supabase) {
             console.log('🔧 Configurando sistema de login...');
-            
-            // DIAGNÓSTICO - Verificar que los elementos existen
-            console.log('🔍 Elementos del DOM:');
-            console.log('- Formulario:', document.getElementById('login-form'));
-            console.log('- Email input:', document.getElementById('email'));
-            console.log('- Password input:', document.getElementById('password'));
-            console.log('- Login button:', document.getElementById('login-btn'));
-            console.log('- Error message:', document.getElementById('error-message'));
-            console.log('- Success message:', document.getElementById('success-message'));
             
             // Elementos del DOM
             const loginForm = document.getElementById('login-form');
@@ -285,6 +304,13 @@
                 // Validaciones básicas
                 if (!email || !password) {
                     showError('Por favor completa todos los campos');
+                    return;
+                }
+                
+                // VALIDACIÓN DE CONTRASEÑA - NUEVA FUNCIONALIDAD
+                const passwordError = validatePasswordStrength(password);
+                if (passwordError) {
+                    showError(passwordError);
                     return;
                 }
                 
