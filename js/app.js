@@ -280,6 +280,9 @@ function displayFeaturedProducts(products) {
         </div>
         <div class="featured-grid" id="featured-products-container">
         </div>
+        
+        <!-- AGREGAR ESTA LÍNEA SEPARADORA -->
+        <div class="featured-divider"></div>
     `;
     
     const productsSection = document.getElementById('products-container');
